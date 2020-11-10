@@ -76,16 +76,16 @@ void TaskTest1::loop()//线程1循环
     if (calSpeedFlg == true) {
       endTime = millis();
       if ((endTime - notRunTime) > 3000) {
+        
+        //只跑一圈不计算平均速度
+        if(singleLapCount >1 ){
+           //开始计算平均速度
+          float ttt =(endTime - startTime-3000)/1000.0;
+          aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
+        }
+        
         //大于3秒间隔，识别为一次连贯运动，可以进行平均速度计算了
         calSpeedFlg = false;//关闭计算平均速度flg
-        //开始计算平均速度
-        float ttt;
-        if(endTime - startTime>3000){
-          ttt =(endTime - startTime-3000)/1000.0;
-        }else{
-          ttt =(endTime-startTime)/1000.0;
-        }
-        aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
         singleSpeed = 0.0; //运动结束时 将实时速度清零
         notRunTime = 0.0;
         startTime = 0.0;
