@@ -79,7 +79,13 @@ void TaskTest1::loop()//线程1循环
         //大于3秒间隔，识别为一次连贯运动，可以进行平均速度计算了
         calSpeedFlg = false;//关闭计算平均速度flg
         //开始计算平均速度
-        aveSpeed = totalRun / (totalRunTime + ((endTime - startTime)/1000.0)); //保存到全局变量中
+        float ttt;
+        if(endTime - startTime>3000){
+          ttt =(endTime - startTime-3000)/1000.0;
+        }else{
+          ttt =(endTime-startTime)/1000.0;
+        }
+        aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
         singleSpeed = 0.0; //运动结束时 将实时速度清零
         notRunTime = 0.0;
         startTime = 0.0;
@@ -91,7 +97,7 @@ void TaskTest1::loop()//线程1循环
 
   //最后更新lastSts
   lastSts = currSts;
-  sleep(40);
+  sleep(10);
 }
 
 void setup() {
@@ -143,13 +149,13 @@ void loop() {
   display.print(aveSpeed_char);
 
   //实时速度
-//  display.setCursor(1, 46);
-//  display.print("Speed:");
-//  display.setCursor(40, 46);
-//  char currSpeed_char[5];
-//  dtostrf(singleSpeed, 1, 1, currSpeed_char);
-//  strcat(currSpeed_char, " m/s");
-//  display.print(currSpeed_char);
+  display.setCursor(1, 46);
+  display.print("Speed:");
+  display.setCursor(40, 46);
+  char currSpeed_char[5];
+  dtostrf(singleSpeed, 1, 1, currSpeed_char);
+  strcat(currSpeed_char, " m/s");
+  display.print(currSpeed_char);
 
   display.setCursor(1, 54);
   display.print("lapCount:");
