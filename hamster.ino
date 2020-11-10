@@ -2,13 +2,11 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <SCoop.h>
-
 #include "word.h"
 
 #define OLED_RESET 4
 #define SpeadPonit 2 //读取跑圈数字接口
 #define T_READ A3 //温度读取口
-#define RUN_INTERVAL 4000;//运动间隙，单位ms，超过该时间即完成一次运动，计算平均速度
 
 Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
 
@@ -76,14 +74,12 @@ void TaskTest1::loop()//线程1循环
   //平均速度计算
   if (lastSts == 1 && currSts == 1) {
     if (calSpeedFlg == true) {
-      float tempT = millis();
       endTime = millis();
-      if ((tempT - notRunTime) > 3000 ) {
+      if ((endTime - notRunTime) > 3000) {
         //大于3秒间隔，识别为一次连贯运动，可以进行平均速度计算了
         calSpeedFlg = false;//关闭计算平均速度flg
         //开始计算平均速度
-        int useTime = (endTime - startTime) / 1000.0;
-        aveSpeed = totalRun / (totalRunTime + useTime); //保存到全局变量中
+        aveSpeed = totalRun / (totalRunTime + ((endTime - startTime)/1000.0)); //保存到全局变量中
         singleSpeed = 0.0; //运动结束时 将实时速度清零
         notRunTime = 0.0;
         startTime = 0.0;
@@ -137,6 +133,7 @@ void loop() {
   strcat(totalRun_char, " m");
   display.print(totalRun_char);
 
+  //平均速度
   display.setCursor(1, 38);
   display.print("Speed(AVG):");
   display.setCursor(67, 38);
@@ -146,13 +143,13 @@ void loop() {
   display.print(aveSpeed_char);
 
   //实时速度
-  display.setCursor(1, 46);
-  display.print("Speed:");
-  display.setCursor(40, 46);
-  char currSpeed_char[5];
-  dtostrf(singleSpeed, 1, 1, currSpeed_char);
-  strcat(currSpeed_char, " m/s");
-  display.print(currSpeed_char);
+//  display.setCursor(1, 46);
+//  display.print("Speed:");
+//  display.setCursor(40, 46);
+//  char currSpeed_char[5];
+//  dtostrf(singleSpeed, 1, 1, currSpeed_char);
+//  strcat(currSpeed_char, " m/s");
+//  display.print(currSpeed_char);
 
   display.setCursor(1, 54);
   display.print("lapCount:");
