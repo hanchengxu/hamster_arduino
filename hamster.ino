@@ -12,10 +12,10 @@ Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
 
 //------------全局变量-------------------------------
 
-int lapCount = 0;//总圈数★
-int singleLapCount = 0; //单次运动圈数
+long lapCount = 0;//总圈数★
+long singleLapCount = 0; //单次运动圈数
 
-float totalRunTime = 0.0;//总运动时间，用于计算平均速度
+//float totalRunTime = 0.0;//总运动时间，用于计算平均速度
 float totalRun = 0.0; //总里程★
 
 float tempTime1 = 0.0; // 长期处于识别区超时
@@ -26,6 +26,7 @@ float notRunTime = 0; //用于识别处于未转动状态，超过1 秒则结束
 boolean calSpeedFlg = false;//计算平均速度flg
 float aveSpeed = 0.0; //平均速度★
 float singleSpeed = 0.0; //实时平均速度★
+float maxSingleSpeed = 0.0;//最大运动速度
 
 defineTask(TaskTest1);//定义子线程1
 
@@ -65,6 +66,9 @@ void TaskTest1::loop()//线程1循环
           float tempT = millis();
           float useTime = (tempT - notRunTime) / 1000.0;
           singleSpeed = Perimeter / useTime;
+          if(maxSingleSpeed<singleSpeed){
+            maxSingleSpeed = singleSpeed;
+          }
         }
       }
     }
@@ -78,11 +82,11 @@ void TaskTest1::loop()//线程1循环
       if ((endTime - notRunTime) > 3000) {
         
         //只跑一圈不计算平均速度
-        if(singleLapCount >1 ){
-           //开始计算平均速度
-          float ttt =(endTime - startTime-3000)/1000.0;
-          aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
-        }
+//        if(singleLapCount >1 ){
+//           //开始计算平均速度
+//          float ttt =(endTime - startTime-3000)/1000.0;
+//          aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
+//        }
         
         //大于3秒间隔，识别为一次连贯运动，可以进行平均速度计算了
         calSpeedFlg = false;//关闭计算平均速度flg
@@ -135,19 +139,35 @@ void loop() {
   display.setCursor(38, 30);
   display.setTextSize(1);
   char totalRun_char[6];
-  dtostrf(totalRun, 1, 1, totalRun_char);
-  strcat(totalRun_char, " m");
-  display.print(totalRun_char);
-
+  if(totalRun>999){
+  //超过999米变更为km单位
+    dtostrf(totalRun/1000, 1, 3, totalRun_char);
+    strcat(totalRun_char, " km");
+    display.print(totalRun_char);
+  }else{
+    dtostrf(totalRun, 1, 1, totalRun_char);
+    strcat(totalRun_char, " m");
+    display.print(totalRun_char);
+  }
+  
   //平均速度
-  display.setCursor(1, 38);
-  display.print("Speed(AVG):");
-  display.setCursor(67, 38);
-  char aveSpeed_char[5];
-  dtostrf(aveSpeed, 1, 1, aveSpeed_char);
-  strcat(aveSpeed_char, " m/s");
-  display.print(aveSpeed_char);
+//  display.setCursor(1, 38);
+//  display.print("Speed(AVG):");
+//  display.setCursor(67, 38);
+//  char aveSpeed_char[5];
+//  dtostrf(aveSpeed, 1, 1, aveSpeed_char);
+//  strcat(aveSpeed_char, " m/s");
+//  display.print(aveSpeed_char);
 
+  //最大速度
+  display.setCursor(1, 38);
+  display.print("Speed(MAX):");
+  display.setCursor(67, 38);
+  char maxSpeed_char[5];
+  dtostrf(maxSingleSpeed, 1, 1, maxSpeed_char);
+  strcat(maxSpeed_char, " m/s");
+  display.print(maxSpeed_char);
+  
   //实时速度
   display.setCursor(1, 46);
   display.print("Speed:");
