@@ -7,6 +7,9 @@
 #define OLED_RESET 4
 #define SpeadPonit 2 //读取跑圈数字接口
 #define T_READ A3 //温度读取口
+#define FEED_SERVO 9  //自动喂食舵机
+#define FEED_POINT 3 //自动喂食红外识别
+
 
 Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
 
@@ -15,24 +18,26 @@ Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
 long lapCount = 0;//总圈数★
 long singleLapCount = 0; //单次运动圈数
 
-//float totalRunTime = 0.0;//总运动时间，用于计算平均速度
 float totalRun = 0.0; //总里程★
 
 float tempTime1 = 0.0; // 长期处于识别区超时
 int lastSts = 1; //default 1
 
-float startTime = 0, endTime = 0; //用于计算平均速度
+float endTime = 0; //用于计算平均速度
 float notRunTime = 0; //用于识别处于未转动状态，超过1 秒则结束一次平均速度计算
 boolean calSpeedFlg = false;//计算平均速度flg
-float aveSpeed = 0.0; //平均速度★
 float singleSpeed = 0.0; //实时平均速度★
 float maxSingleSpeed = 0.0;//最大运动速度
+//--------自动喂食用全局变量-------
 
 defineTask(TaskTest1);//定义子线程1
 
 void TaskTest1::setup()//线程1设定
 {
   pinMode(SpeadPonit, INPUT);
+  pinMode(FEED_SERVO,OUTPUT);
+  pinMode(FEED_POINT,INPUT);
+
 }
 void TaskTest1::loop()//线程1循环
 {
@@ -44,7 +49,6 @@ void TaskTest1::loop()//线程1循环
     if (calSpeedFlg == false) {
       calSpeedFlg = true; //在这里 开启calSpeedFlg Flg
       singleLapCount = 0; //单次运动圈数，从开启flg开始置为0
-      startTime = millis();
       singleSpeed = 0.0;
     }
   }
@@ -75,25 +79,16 @@ void TaskTest1::loop()//线程1循环
     notRunTime = millis();//每次完成一圈识别的下一个状态是[1,1],刷新notRunTime,用于计算平均速度
   }
 
-  //平均速度计算
+  //运动结束变量清零
   if (lastSts == 1 && currSts == 1) {
     if (calSpeedFlg == true) {
       endTime = millis();
       if ((endTime - notRunTime) > 3000) {
-        
-        //只跑一圈不计算平均速度
-//        if(singleLapCount >1 ){
-//           //开始计算平均速度
-//          float ttt =(endTime - startTime-3000)/1000.0;
-//          aveSpeed = totalRun / (totalRunTime + ttt); //保存到全局变量中
-//        }
-        
         //大于3秒间隔，识别为一次连贯运动，可以进行平均速度计算了
         calSpeedFlg = false;//关闭计算平均速度flg
         singleSpeed = 0.0; //运动结束时 将实时速度清零
-        notRunTime = 0.0;
-        startTime = 0.0;
         endTime =0.0;
+        notRunTime = 0.0;
         singleLapCount = 0;
       }
     }
@@ -101,6 +96,32 @@ void TaskTest1::loop()//线程1循环
 
   //最后更新lastSts
   lastSts = currSts;
+  
+  //------------------------
+  int feedFlg = digitalRead(FEED_POINT);
+//  Serial.println(feedFlg);
+
+  //0 不喂食 1 喂食
+  //1:因为黑色食盆反射率，食盆空不会触发红外所有返回1，如果有食物反射率不同，则会返回0(这块与直觉不同)
+  //拿掉食盆也会因为反射率原因返回0
+  if(feedFlg == 1){
+
+    int myangle1=map(130,0,180,500,2480);
+    digitalWrite(FEED_SERVO,HIGH);//将舵机接口电平至高
+    sleep(2.48);//延时脉宽值的微秒数
+    digitalWrite(FEED_SERVO,LOW);//将舵机接口电平至低
+
+//    sleep(500);
+  }
+  if(feedFlg == 0){
+    int myangle1=map(90,0,180,500,2480);
+    digitalWrite(FEED_SERVO,HIGH);//将舵机接口电平至高
+    delayMicroseconds(myangle1);//延时脉宽值的微秒数
+    digitalWrite(FEED_SERVO,LOW);//将舵机接口电平至低
+  }
+  
+  
+  
   sleep(10);
 }
 
@@ -110,11 +131,11 @@ void setup() {
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setTextColor(WHITE);//开像素点发光
   display.clearDisplay();//清屏
-
 }
 
 void loop() {
   yield();
+  
   float temperature = analogRead(T_READ); //读取传感器获取温度模拟值
   temperature = temperature * (5.0 / 1023.0) * 100; //获取摄氏度
   //  Serial.println(Perimeter);
@@ -149,15 +170,6 @@ void loop() {
     strcat(totalRun_char, " m");
     display.print(totalRun_char);
   }
-  
-  //平均速度
-//  display.setCursor(1, 38);
-//  display.print("Speed(AVG):");
-//  display.setCursor(67, 38);
-//  char aveSpeed_char[5];
-//  dtostrf(aveSpeed, 1, 1, aveSpeed_char);
-//  strcat(aveSpeed_char, " m/s");
-//  display.print(aveSpeed_char);
 
   //最大速度
   display.setCursor(1, 38);
